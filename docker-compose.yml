@@ -1,0 +1,43 @@
+# File nộp cho BTC. Trỏ image đã push Public lên Docker Hub (RULES.md R4).
+# CÁC DÒNG có "#Don't change this to vllm-server" PHẢI GIỮ NGUYÊN (RULES.md R1.6).
+#
+# ⚠️ Đổi <DOCKERHUB_USER>/lfm2-otp:sub-01 thành image:tag thật đã push.
+services:
+  model:
+    image: <DOCKERHUB_USER>/lfm2-otp:sub-01   # <-- ĐỔI thành image đã push
+    entrypoint:
+      - python3                                    #Don't change this to vllm-server
+      - -m                                         #Don't change this to vllm-server
+      - vllm.entrypoints.openai.api_server         #Don't change this to vllm-server
+    command:
+      - --model=/model                             #Don't change this to vllm-server
+      - --served-model-name=LFM2.5-1.2B-Instruct   #Don't change this to vllm-server
+      - --host=0.0.0.0                             #Don't change this to vllm-server
+      - --port=8000                                #Don't change this to vllm-server
+      # --- Tham số tối ưu (mọi giá trị đều justify được — RULES.md R2.6) ---
+      # Context thật ~4k input + 200 output. 4608 = đệm an toàn, tiết kiệm KV cache
+      # so với 32768 của mẫu -> nhiều slot concurrency hơn.
+      - --max-model-len=4608
+      - --gpu-memory-utilization=0.92
+      - --tensor-parallel-size=1
+      # Multi-turn -> prefix caching cho hit rate cao -> giảm TTFT mạnh.
+      - --enable-prefix-caching
+      # KV cache FP8 -> gấp đôi số token cache được (kiểm Δ accuracy trước khi chốt).
+      - --kv-cache-dtype=fp8
+      # CUDA graphs bật (KHÔNG dùng --enforce-eager) -> giảm overhead TTFT batch nhỏ.
+    ports:
+      - "8000:8000"
+    shm_size: "2g"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request,sys; sys.exit(0) if urllib.request.urlopen('http://localhost:8000/health').status==200 else sys.exit(1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

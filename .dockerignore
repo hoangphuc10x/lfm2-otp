@@ -1,0 +1,9 @@
+bench/
+eval/
+notes/
+scripts/
+*.md
+.git/
+.gitignore
+.venv/
+__pycache__/

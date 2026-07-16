@@ -1,0 +1,16 @@
+# Weights KHÔNG commit vào repo (bake vào image — RULES.md R5.5)
+/model/
+*.safetensors
+*.bin
+
+# Kết quả benchmark thô (giữ file summary nếu muốn, bỏ dump lớn)
+bench/results/*.json
+!bench/results/.gitkeep
+bench/trace_synth.jsonl
+eval/results/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
