@@ -4,7 +4,7 @@
 # ⚠️ Đổi hoangphuc109/lfm2-otp:sub-01 thành image:tag thật đã push.
 services:
   model:
-    image: hoangphuc109/lfm2-otp:sub-01   # <-- part2
+    image: hoangphuc109/lfm2-otp:sub-01   # <-- ĐỔI thành image đã push
     entrypoint:
       - python3                                    #Don't change this to vllm-server
       - -m                                         #Don't change this to vllm-server
@@ -24,11 +24,6 @@ services:
       - --enable-prefix-caching
       # KV cache FP8 -> gấp đôi số token cache được (kiểm Δ accuracy trước khi chốt).
       - --kv-cache-dtype=fp8
-      # part2: online FP8 weight quant -> decode/prefill nhanh hơn (memory-bound). +11.4đ.
-      # BẮT BUỘC kiểm Δ ≤ 0.10 (GPQA) trước khi chốt. Nếu server không lên -> xem part2/SUMMARY.md.
-      - --quantization=fp8
-      # part3: n-gram speculative decoding -> giảm TPOT. Lossless với greedy (Δ=0).
-      - '--speculative-config={"method": "ngram", "num_speculative_tokens": 5, "prompt_lookup_max": 4, "prompt_lookup_min": 2}'
       # CUDA graphs bật (KHÔNG dùng --enforce-eager) -> giảm overhead TTFT batch nhỏ.
     ports:
       - "8000:8000"

@@ -1,10 +1,8 @@
-# File nộp cho BTC. Trỏ image đã push Public lên Docker Hub (RULES.md R4).
-# CÁC DÒNG có "#Don't change this to vllm-server" PHẢI GIỮ NGUYÊN (RULES.md R1.6).
-#
-# ⚠️ Đổi hoangphuc109/lfm2-otp:sub-01 thành image:tag thật đã push.
+# PART 2 — thêm FP8 WEIGHT quantization (thay đổi 1 biến so với part1).
+# Đổi image tag -> sub-02. Giữ nguyên các dòng #Don't change this to vllm-server.
 services:
   model:
-    image: hoangphuc109/lfm2-otp:sub-01   # <-- part2
+    image: hoangphuc109/lfm2-otp:sub-01   # <-- tag mới cho part2
     entrypoint:
       - python3                                    #Don't change this to vllm-server
       - -m                                         #Don't change this to vllm-server
@@ -14,22 +12,16 @@ services:
       - --served-model-name=LFM2.5-1.2B-Instruct   #Don't change this to vllm-server
       - --host=0.0.0.0                             #Don't change this to vllm-server
       - --port=8000                                #Don't change this to vllm-server
-      # --- Tham số tối ưu (mọi giá trị đều justify được — RULES.md R2.6) ---
-      # Context thật ~4k input + 200 output. 4608 = đệm an toàn, tiết kiệm KV cache
-      # so với 32768 của mẫu -> nhiều slot concurrency hơn.
       - --max-model-len=4608
       - --gpu-memory-utilization=0.92
       - --tensor-parallel-size=1
-      # Multi-turn -> prefix caching cho hit rate cao -> giảm TTFT mạnh.
       - --enable-prefix-caching
-      # KV cache FP8 -> gấp đôi số token cache được (kiểm Δ accuracy trước khi chốt).
       - --kv-cache-dtype=fp8
-      # part2: online FP8 weight quant -> decode/prefill nhanh hơn (memory-bound). +11.4đ.
-      # BẮT BUỘC kiểm Δ ≤ 0.10 (GPQA) trước khi chốt. Nếu server không lên -> xem part2/SUMMARY.md.
+      # ★ THAY ĐỔI part2: online FP8 weight quant (W8A8). Weights BF16 -> FP8.
+      #   Kỳ vọng: decode ~1.5-2x nhanh hơn (memory-bound) -> TPOT 5ms -> ~2.5-3ms;
+      #   prefill nhanh hơn -> TTFT giảm. RỦI RO: Δ accuracy tăng -> BẮT BUỘC chạy GPQA
+      #   kiểm Δ ≤ 0.10 trước khi coi là bài chốt.
       - --quantization=fp8
-      # part3: n-gram speculative decoding -> giảm TPOT. Lossless với greedy (Δ=0).
-      - '--speculative-config={"method": "ngram", "num_speculative_tokens": 5, "prompt_lookup_max": 4, "prompt_lookup_min": 2}'
-      # CUDA graphs bật (KHÔNG dùng --enforce-eager) -> giảm overhead TTFT batch nhỏ.
     ports:
       - "8000:8000"
     shm_size: "2g"
