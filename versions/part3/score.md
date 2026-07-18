@@ -1,12 +1,24 @@
 # Part 3 — Điểm (n-gram speculative decoding)
 
-> Chờ điểm. Khi có, tôi điền + so với part2 (55.23) và dựng part4.
+## ❌ THẤT BẠI — unscoreable
 
-| Chỉ số | part2 | part3 |
-|---|---|---|
-| final_score | 55.23 | _chưa có_ |
-| TTFT p50 / p95 | 80 / 117 ms | _chưa có_ |
-| TPOT median | 4 ms | _chưa có_ (mục tiêu ~2-2.5) |
-| failed_count | 0 | _chưa có_ |
+**Lỗi:** `protocol aborted: transport errors 330/330 (> 10%) — contestant unscoreable`
 
-**Nhận xét:** _(điền khi có điểm — chú ý acceptance rate trong log vLLM)_
+→ **330/330 request lỗi transport = server KHÔNG chạy / crash ngay khi startup.** Không phải vấn đề
+tốc độ hay điểm — endpoint không phản hồi.
+
+**Chẩn đoán:** part2 (chỉ FP8) chạy tốt (55.23). Biến mới duy nhất ở part3 là
+`--speculative-config` (n-gram spec decode) → gần như chắc chắn spec decode làm vLLM crash lúc load,
+hoặc **FP8 + spec decode xung khắc** trong vLLM v0.22.1.
+
+**Hành động:**
+- ✅ Rollback root docker-compose về **part2 (FP8)** — trạng thái chấm được (55.23).
+- ⏸️ Spec decode tạm gác. Sẽ debug trên instance test **g6** (đọc log crash thật) trước khi thử lại.
+
+## Việc cần làm để debug part3 (trên g6)
+1. `docker compose up` với dòng spec decode → đọc `docker compose logs` tìm traceback thật.
+2. Giả thuyết cần loại trừ:
+   - Cú pháp `--speculative-config` (đã xác nhận đúng dạng JSON theo docs vLLM).
+   - **FP8 + spec decode không tương thích** → thử spec decode KHÔNG kèm `--quantization=fp8`.
+   - vLLM v0.22.1 bản cũ chưa hỗ trợ ngram spec decode với engine V1 → thử tắt/bật `VLLM_USE_V1`.
+3. Nếu FP8+spec xung khắc: chọn 1 trong 2 (ưu tiên FP8 vì đã +11đ), hoặc tìm đòn bẩy TPOT khác.

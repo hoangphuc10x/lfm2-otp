@@ -6,7 +6,7 @@ Bảng theo dõi từng bài nộp. Cần khi chọn ≤ 5 bài cuối cho GPQA 
 |-----|------|----------------|-----------|-----------------|---|--------------|----------|---------|
 | part1 | 2026-07-17 | prefix-cache + **kv**-fp8 + max-len 4608 (weights BF16) | — | **43.82** | 0* | 98/147 ms | 5 ms | 0 fail. baseline |
 | part2 | 2026-07-17 | + `--quantization=fp8` (FP8 weights) | — | **55.23** | 0* | 80/117 ms | 4 ms | **+11.4đ**. Δ thật CHƯA đo (GPQA) |
-| part3 | — | + speculative decoding (n-gram) | — | _dự kiến_ | — | — | mục tiêu ~2ms | đòn bẩy TPOT |
+| part3 | 2026-07-18 | + speculative decoding (n-gram) | — | ❌ **FAIL** | — | — | — | 330/330 transport errors, server crash. Rollback về part2 |
 
 *Δ online = default, chưa chạy GPQA. `config_hash` băm theo IMAGE, không theo command args.
 

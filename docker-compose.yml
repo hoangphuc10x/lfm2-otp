@@ -27,8 +27,8 @@ services:
       # part2: online FP8 weight quant -> decode/prefill nhanh hơn (memory-bound). +11.4đ.
       # BẮT BUỘC kiểm Δ ≤ 0.10 (GPQA) trước khi chốt. Nếu server không lên -> xem part2/SUMMARY.md.
       - --quantization=fp8
-      # part3: n-gram speculative decoding -> giảm TPOT. Lossless với greedy (Δ=0).
-      - '--speculative-config={"method": "ngram", "num_speculative_tokens": 5, "prompt_lookup_max": 4, "prompt_lookup_min": 2}'
+      # part3 (spec decode) ĐÃ GỠ: gây crash startup -> 330/330 transport errors.
+      # Sẽ debug lại trên instance test g6 (đọc log crash) trước khi thử nộp lại.
       # CUDA graphs bật (KHÔNG dùng --enforce-eager) -> giảm overhead TTFT batch nhỏ.
     ports:
       - "8000:8000"
