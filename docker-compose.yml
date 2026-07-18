@@ -4,7 +4,7 @@
 # ⚠️ Đổi hoangphuc109/lfm2-otp:sub-01 thành image:tag thật đã push.
 services:
   model:
-    image: hoangphuc109/lfm2-otp:sub-03   # <-- part3 (đã bake vllm_config.yaml)
+    image: hoangphuc109/lfm2-otp:sub-01   # <-- part2 (FP8, ổn định 55.23)
     entrypoint:
       - python3                                    #Don't change this to vllm-server
       - -m                                         #Don't change this to vllm-server
@@ -27,9 +27,7 @@ services:
       # part2: online FP8 weight quant -> decode/prefill nhanh hơn (memory-bound). +11.4đ.
       # BẮT BUỘC kiểm Δ ≤ 0.10 (GPQA) trước khi chốt. Nếu server không lên -> xem part2/SUMMARY.md.
       - --quantization=fp8
-      # part3: n-gram spec decode qua FILE config (chống mất quotes — đã verify chạy trên RunPod L40).
-      # File /vllm_config.yaml được bake trong image (Dockerfile). Lossless greedy -> Δ=0.
-      - --config=/vllm_config.yaml
+      # part3 (spec decode) ĐÃ BỎ HẲN: crash engine với LFM2 hybrid/mamba (500/503 kể cả warm).
       # CUDA graphs bật (KHÔNG dùng --enforce-eager) -> giảm overhead TTFT batch nhỏ.
     ports:
       - "8000:8000"

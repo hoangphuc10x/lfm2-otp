@@ -1,6 +1,18 @@
 # Part 3 — Điểm (n-gram speculative decoding)
 
-## ❌ THẤT BẠI — unscoreable
+## ❌❌ BỎ HẲN — spec decode crash với LFM2 hybrid
+
+**Kết luận cuối (2026-07-18):** đã sửa được lỗi quoting (dùng file config), server KHỞI ĐỘNG được,
+NHƯNG khi sinh thật thì **engine core sập**: request đầu chậm rồi các request sau `http=500`,
+`/health=503`, container restart. Test lại lúc warm vẫn `500/503`.
+
+**Nguyên nhân:** LFM2.5 là model **hybrid Mamba + short-conv**; speculative decoding (n-gram)
+**không tương thích ổn định** với kiến trúc mamba/hybrid trong vLLM v0.22.1.
+
+→ **Spec decode LOẠI khỏi mọi phương án.** Giữ part2 (FP8, 55.23) làm nền. Chuyển sang tuning an toàn (part4+).
+
+---
+## (Lịch sử) THẤT BẠI lần 1 — unscoreable
 
 **Lỗi:** `protocol aborted: transport errors 330/330 (> 10%) — contestant unscoreable`
 
