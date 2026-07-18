@@ -24,5 +24,9 @@ snapshot_download(repo_id='${MODEL_REPO}', local_dir='/model', \
     ignore_patterns=['*.pth','*.bin.index.json.lock','original/*'])" && \
     pip uninstall -y hf_transfer || true
 
+# Config vLLM (chứa speculative_config) — trỏ bằng --config=/vllm_config.yaml.
+# Baked vào image để tránh lỗi mất quotes khi truyền JSON qua command (part3).
+COPY vllm_config.yaml /vllm_config.yaml
+
 # Không đặt ENTRYPOINT/CMD ở đây — docker-compose.yml khai báo entrypoint/command
 # theo đúng ràng buộc BTC (python3 -m vllm.entrypoints.openai.api_server).

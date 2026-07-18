@@ -1,0 +1,10 @@
+# vLLM config file — baked vào image, trỏ bằng --config=/vllm_config.yaml.
+# Cách này tránh hoàn toàn lỗi mất dấu ngoặc kép khi truyền JSON qua command
+# (nguyên nhân part3 crash 330/330 trên BTC). Không còn quotes/braces trong command.
+#
+# Chỉ để speculative_config ở đây; các arg khác vẫn nằm inline trong docker-compose.
+speculative_config:
+  method: ngram
+  num_speculative_tokens: 5
+  prompt_lookup_max: 4
+  prompt_lookup_min: 2
