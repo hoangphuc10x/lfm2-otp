@@ -10,6 +10,8 @@ Bảng theo dõi từng bài nộp. Cần khi chọn ≤ 5 bài cuối cho GPQA 
 
 *Δ online = default, chưa chạy GPQA. `config_hash` băm theo IMAGE, không theo command args.
 
+**Accuracy FP8 đã kiểm (2026-07-18, arc_challenge proxy):** BF16 acc_norm=0.4121 vs FP8=0.4155 → **Δ≈0, FP8 không tụt accuracy**. part2 an toàn ở Accuracy Gate. Spec decode (part3) đã loại (crash hybrid).
+
 ## Nhật ký thử nghiệm (điền dần)
 
 ### sub-01

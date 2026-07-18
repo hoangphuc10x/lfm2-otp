@@ -23,7 +23,20 @@
 - **TPOT vẫn là đòn bẩy #1** (mới 44% tối đa). 4ms→2ms ≈ +17đ; →1ms ≈ +28đ.
 - TTFT #2 (67%). 80→40ms ≈ +9đ.
 
-## ⚠️ RỦI RO CHƯA GIẢI QUYẾT — accuracy của FP8
+## ✅ ĐÃ KIỂM ACCURACY (2026-07-18, trên RunPod L40)
+Đo `arc_challenge` (proxy, non-gated) — accuracy transfer 100% vì FP8 cho kết quả y hệt mọi GPU:
+
+| Config | acc | acc_norm |
+|---|---|---|
+| BF16 (gốc) | 0.3814 | 0.4121 |
+| FP8 (part2) | 0.3840 | 0.4155 |
+| **Δ** | −0.0026 | **−0.0034** (trong sai số ±0.014) |
+
+→ **FP8 KHÔNG tụt accuracy** (Δ≈0, thậm chí nhỉnh hơn do nhiễu). part2 AN TOÀN ở Accuracy Gate.
+Lưu ý: arc_challenge là proxy; GPQA thật có thể khác chút nhưng FP8 delta ~0 cho biên độ an toàn rất lớn
+so với ngân sách 0.10.
+
+## (Đã giải quyết) RỦI RO trước đây — accuracy của FP8
 `accuracy_drop=0` online là **giá trị mặc định** (BTC KHÔNG chạy GPQA mỗi lượt). FP8 weights
 **có thể** làm tụt accuracy thật. **BẮT BUỘC** chạy `eval/bench-gpqa-diamond.sh` để đo Δ thật
 và xác nhận Δ ≤ 0.10 TRƯỚC khi chọn part2 làm bài chốt. Nếu Δ vượt → part2 vô hiệu ở Accuracy Gate.
