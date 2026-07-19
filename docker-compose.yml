@@ -27,29 +27,22 @@ services:
       # part2: online FP8 weight quant -> decode/prefill nhanh hơn (memory-bound). +11.4đ.
       # BẮT BUỘC kiểm Δ ≤ 0.10 (GPQA) trước khi chốt. Nếu server không lên -> xem part2/SUMMARY.md.
       - --quantization=fp8
-      # part4: async scheduling -> giảm overhead scheduler CPU, lấp gap GPU.
-      # Rất hợp nút cổ chai 3-CPU của BTC -> kỳ vọng TTFT ↓. An toàn (không model-specific).
-      - --async-scheduling
-      # part3 (spec decode) ĐÃ BỎ HẲN: crash engine với LFM2 hybrid/mamba (500/503 kể cả warm).
+      # part4/5 (--async-scheduling) ĐÃ BỎ: giảm TTFT 80->42ms nhưng làm ~88 request primer
+      #   FAIL lúc cold-start -> mất warmup -> tụt điểm (49-51 < 55.23). BTC bỏ qua healthcheck
+      #   compose nên không warmup vá được. Config phải ổn định NGAY từ request đầu.
+      # part3 (spec decode) ĐÃ BỎ: crash engine với LFM2 hybrid/mamba.
+      # => Đây là part2 (FP8): best ổn định 55.23, 0 fail, accuracy Δ≈0.
       # CUDA graphs bật (KHÔNG dùng --enforce-eager) -> giảm overhead TTFT batch nhỏ.
     ports:
       - "8000:8000"
     shm_size: "2g"
-    # part5: healthcheck WARMUP — gọi 1 request sinh chữ thật thay vì chỉ ping /health.
-    # Chỉ báo "healthy" khi model ĐÃ compile xong + sinh được token nhanh -> BTC chỉ bắt
-    # đầu chấm khi model đã nóng -> diệt fail cold-start (74 fail của part4).
+    # healthcheck đơn giản (part5 warmup-healthcheck vô tác dụng: BTC bỏ qua healthcheck compose).
     healthcheck:
-      test:
-        - CMD-SHELL
-        - >-
-          python3 -c "import urllib.request,json,sys;
-          d=json.dumps({'model':'LFM2.5-1.2B-Instruct','prompt':'ready','max_tokens':8,'temperature':0}).encode();
-          req=urllib.request.Request('http://localhost:8000/v1/completions',data=d,headers={'Content-Type':'application/json'});
-          sys.exit(0 if 'text' in urllib.request.urlopen(req,timeout=35).read().decode() else 1)"
-      interval: 15s
-      timeout: 40s
-      retries: 40
-      start_period: 30s
+      test: ["CMD", "python3", "-c", "import urllib.request,sys; sys.exit(0) if urllib.request.urlopen('http://localhost:8000/health').status==200 else sys.exit(1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
     deploy:
       resources:
         reservations:
