@@ -31,9 +31,8 @@ services:
       #   cách chấm (chấm cả 420 request, bỏ miễn warmup). Vấn đề còn lại: ~74 fail cold-start.
       #   Mục tiêu part6+: diệt fail này mà giữ TTFT 42ms -> ~64đ.
       - --async-scheduling
-      # part6: cap max-num-seqs -> giảm số sequence đồng thời -> nhẹ tải scheduler 3-CPU.
-      # Probe giả thuyết "async quá tải 3-CPU gây fail". Nếu fail KHÔNG giảm -> fail là cold-start -> part7.
-      - --max-num-seqs=64
+      # part6 (--max-num-seqs=64) ĐÃ BỎ: làm HẠI (TTFT 42->54ms queueing, fail không giảm)
+      #   -> xác nhận fail KHÔNG do quá tải mà do COLD-START. => quay lại async trần (part4, best 51.54).
       # part3 (spec decode) ĐÃ BỎ: crash engine với LFM2 hybrid/mamba.
       # CUDA graphs bật (KHÔNG dùng --enforce-eager) -> giảm overhead TTFT batch nhỏ.
     ports:
