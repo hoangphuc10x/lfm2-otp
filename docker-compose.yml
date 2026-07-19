@@ -42,10 +42,10 @@ services:
       test:
         - CMD-SHELL
         - >-
-          curl -sf -X POST http://localhost:8000/v1/completions
-          -H 'Content-Type: application/json'
-          -d '{"model":"LFM2.5-1.2B-Instruct","prompt":"ready","max_tokens":8,"temperature":0}'
-          | grep -q '"text"'
+          python3 -c "import urllib.request,json,sys;
+          d=json.dumps({'model':'LFM2.5-1.2B-Instruct','prompt':'ready','max_tokens':8,'temperature':0}).encode();
+          req=urllib.request.Request('http://localhost:8000/v1/completions',data=d,headers={'Content-Type':'application/json'});
+          sys.exit(0 if '\"text\"' in urllib.request.urlopen(req,timeout=35).read().decode() else 1)"
       interval: 15s
       timeout: 40s
       retries: 40
