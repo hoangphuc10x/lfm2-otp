@@ -11,8 +11,8 @@ Xem thêm: [CLAUDE.md](CLAUDE.md) (đề bài), [notes/submissions.md](notes/sub
 |---|---|
 | **Bài nộp tốt nhất** | **part2 = 55.23đ** (FP8 weights + FP8 KV + prefix cache + max-len 4608) |
 | **Accuracy** | ✅ đã verify FP8 **không tụt** (Δ≈0) → part2 an toàn ở Accuracy Gate |
-| **Đang chờ** | part4 (+`--async-scheduling`) — cần boot-check + nộp |
-| **Đã loại** | part3 (spec decode) — crash với LFM2 hybrid |
+| **Đã loại** | part3 (spec decode — crash hybrid); part4/5 (async-scheduling — fail primer cold-start) |
+| **Best** | **part2 = 55.23** (0 fail, accuracy an toàn) — compose đã revert về đây |
 | **Fallback an toàn** | part2 (sub-01, image công khai trên Docker Hub) |
 
 ---
@@ -23,8 +23,11 @@ Xem thêm: [CLAUDE.md](CLAUDE.md) (đề bài), [notes/submissions.md](notes/sub
 |---|---|---|---|---|---|
 | **part1** | baseline: FP8 **KV**, weights BF16, prefix-cache, max-len 4608 | **43.82** | 98/147 ms | 5 ms | 0 fail |
 | **part2** | + **FP8 weights** (`--quantization=fp8`) | **55.23** | 80/117 ms | 4 ms | **+11.4đ**, accuracy Δ≈0 ✅ |
-| **part3** | + n-gram speculative decoding | ❌ FAIL | — | — | 330/330 → sửa quoting → vẫn crash hybrid (500/503). **BỎ** |
-| **part4** | part2 + `--async-scheduling` | ⏳ chờ nộp | — | — | đòn bẩy TTFT, an toàn |
+| **part3** | + n-gram speculative decoding | ❌ FAIL | — | — | crash hybrid (500/503). **BỎ** |
+| **part4** | part2 + `--async-scheduling` | **51.54** ↓ | **42**/71 ms | 4 ms | TTFT giảm nửa 🔥 nhưng **74 fail** (primer cold-start) |
+| **part5** | part4 + warmup healthcheck | **49.01** ↓ | 47/73 ms | 4 ms | healthcheck **BTC bỏ qua** (hash==part4); 88 fail. **BỎ async** |
+
+**→ Best = part2 = 55.23** (0 fail, accuracy an toàn). Async cho TTFT 42ms nhưng làm ~88 primer FAIL cold-start → mất warmup → net < part2, không vá được (BTC dùng healthcheck riêng).
 
 Phân tích ERS (γ=2, w=0.5): TTFT 80ms → s=0.67 (67% max); TPOT 4ms → s=0.44 (44% max).
 → **TPOT còn headroom lớn nhất** nhưng đòn bẩy TPOT (spec decode) đã chết → chuyển sang TTFT.
