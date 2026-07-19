@@ -27,11 +27,11 @@ services:
       # part2: online FP8 weight quant -> decode/prefill nhanh hơn (memory-bound). +11.4đ.
       # BẮT BUỘC kiểm Δ ≤ 0.10 (GPQA) trước khi chốt. Nếu server không lên -> xem part2/SUMMARY.md.
       - --quantization=fp8
-      # part4/5 (--async-scheduling) ĐÃ BỎ: giảm TTFT 80->42ms nhưng làm ~88 request primer
-      #   FAIL lúc cold-start -> mất warmup -> tụt điểm (49-51 < 55.23). BTC bỏ qua healthcheck
-      #   compose nên không warmup vá được. Config phải ổn định NGAY từ request đầu.
+      # part4: async scheduling -> TTFT 80->42ms. LÀ BEST hiện tại (51.54) sau khi BTC đổi
+      #   cách chấm (chấm cả 420 request, bỏ miễn warmup). Vấn đề còn lại: ~74 fail cold-start.
+      #   Mục tiêu part6+: diệt fail này mà giữ TTFT 42ms -> ~64đ.
+      - --async-scheduling
       # part3 (spec decode) ĐÃ BỎ: crash engine với LFM2 hybrid/mamba.
-      # => Đây là part2 (FP8): best ổn định 55.23, 0 fail, accuracy Δ≈0.
       # CUDA graphs bật (KHÔNG dùng --enforce-eager) -> giảm overhead TTFT batch nhỏ.
     ports:
       - "8000:8000"
