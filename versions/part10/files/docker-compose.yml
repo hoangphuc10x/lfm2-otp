@@ -1,8 +1,7 @@
 # File nộp cho BTC. Trỏ image đã push Public lên Docker Hub (RULES.md R4).
 # CÁC DÒNG có "#Don't change this to vllm-server" PHẢI GIỮ NGUYÊN (RULES.md R1.6).
 #
-# part12 = part2 (sync FP8, DEFAULT piecewise CUDA graph) + max-model-len 4608 -> 8192.
-#   Rollback thảm họa part11 (enforce-eager, TPOT 10ms). Đổi 1 BIẾN so với part2: max-model-len.
+# part10 = part9 (sync + full-decode CUDA graph) + --async-scheduling.
 # ⚠️ Dùng lại image sub-01 (chỉ đổi command, KHÔNG build lại).
 services:
   model:
@@ -16,24 +15,23 @@ services:
       - --served-model-name=LFM2.5-1.2B-Instruct   #Don't change this to vllm-server
       - --host=0.0.0.0                             #Don't change this to vllm-server
       - --port=8000                                #Don't change this to vllm-server
-      # ---- part12: max-model-len 4608 -> 8192 (phép thử MIỄN PHÍ cho fails) ----
-      # Giả thuyết: 1 phần trong ~75 fails có thể là request bị REJECT vì total context
-      #   (multi-turn tích lũy hoặc input "~4k" thực tế cao hơn) + output 200 VƯỢT 4608 -> 400 error -> fail.
-      #   Đây là biến DUY NHẤT chưa ai đổi qua 11 part, và nó trace-determined (giải thích fails ~hằng số).
-      # 8192 dư sức chứa 4k input + lịch sử multi-turn + 200 output. VRAM 18GB / model 1.2B FP8 + KV-FP8:
-      #   concurrency đỉnh ~5 -> KV cache thừa mứa, KHÔNG lo OOM / giảm concurrency.
-      # Rủi ro: startup nhích nhẹ (KV profiling dài hơn) -> có thể +vài fail. Net dương nếu có context-overflow.
-      - --max-model-len=8192
+      - --max-model-len=4608
       - --gpu-memory-utilization=0.92
       - --tensor-parallel-size=1
-      # Multi-turn -> prefix caching hit cao -> giảm TTFT.
       - --enable-prefix-caching
-      # KV cache FP8 -> gấp đôi token cache.
       - --kv-cache-dtype=fp8
-      # FP8 weight quant online -> decode/prefill nhanh (+11đ). Accuracy arc_challenge Δ≈0; GPQA CHƯA đo.
       - --quantization=fp8
-      # KHÔNG --enforce-eager (part11 -> TPOT 10ms). KHÔNG --compilation-config (part9 no-op).
-      # KHÔNG --async-scheduling (part4-7 fails nhiều hơn sync). DEFAULT compilation = piecewise graph -> TPOT 4ms.
+      # ---- part10: async (TTFT) + full-graph reduced-capture (TPOT + FAIL mitigation) ----
+      # async-scheduling: TTFT 80->~44ms (overlap scheduler với GPU trên host 3-CPU).
+      #   RỦI RO: vLLM ghi nhận async có thể crash/bất ổn dưới tải (bug reports). Rollback = part9/part2.
+      - --async-scheduling
+      # full-decode CUDA graph + cudagraph_capture_sizes NHỎ [1..16]:
+      #   (a) TPOT: graph hóa decode -> cắt launch overhead (4->~2ms).
+      #   (b) FAIL: capture nhanh (~5 sizes thay vì mặc định ~67 -> ~54s) => engine SẴN SÀNG sớm
+      #       => thu hẹp cửa sổ "/health=200 nhưng chưa ready" (nguyên nhân ~89 cold-start fail của async).
+      #   (c) né crash Mamba causal_conv1d_update (PR #34571) nhờ cap size nhỏ.
+      # QUOTING: 1 scalar single-quote (bài học part3).
+      - '--compilation-config={"cudagraph_mode":"FULL_AND_PIECEWISE","cudagraph_capture_sizes":[1,2,4,8,16]}'
     ports:
       - "8000:8000"
     shm_size: "2g"

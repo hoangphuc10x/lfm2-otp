@@ -1,8 +1,9 @@
 # File nộp cho BTC. Trỏ image đã push Public lên Docker Hub (RULES.md R4).
 # CÁC DÒNG có "#Don't change this to vllm-server" PHẢI GIỮ NGUYÊN (RULES.md R1.6).
 #
-# part12 = part2 (sync FP8, DEFAULT piecewise CUDA graph) + max-model-len 4608 -> 8192.
-#   Rollback thảm họa part11 (enforce-eager, TPOT 10ms). Đổi 1 BIẾN so với part2: max-model-len.
+# part13 = part12 (sync FP8, DEFAULT piecewise CUDA graph, max-len 8192, 60.11đ ATH) + max-model-len 8192 -> 12288.
+#   part12 đã cắt fails 75->5 bằng cách tăng max-model-len (context-overflow, KHÔNG phải cold-start).
+#   part13 đổi tiếp 1 BIẾN so với part12 để kiểm 5 fail còn lại có phải overflow nốt hay là floor thật.
 # ⚠️ Dùng lại image sub-01 (chỉ đổi command, KHÔNG build lại).
 services:
   model:
@@ -16,23 +17,24 @@ services:
       - --served-model-name=LFM2.5-1.2B-Instruct   #Don't change this to vllm-server
       - --host=0.0.0.0                             #Don't change this to vllm-server
       - --port=8000                                #Don't change this to vllm-server
-      # ---- part12: max-model-len 4608 -> 8192 (phép thử MIỄN PHÍ cho fails) ----
-      # Giả thuyết: 1 phần trong ~75 fails có thể là request bị REJECT vì total context
-      #   (multi-turn tích lũy hoặc input "~4k" thực tế cao hơn) + output 200 VƯỢT 4608 -> 400 error -> fail.
-      #   Đây là biến DUY NHẤT chưa ai đổi qua 11 part, và nó trace-determined (giải thích fails ~hằng số).
-      # 8192 dư sức chứa 4k input + lịch sử multi-turn + 200 output. VRAM 18GB / model 1.2B FP8 + KV-FP8:
-      #   concurrency đỉnh ~5 -> KV cache thừa mứa, KHÔNG lo OOM / giảm concurrency.
-      # Rủi ro: startup nhích nhẹ (KV profiling dài hơn) -> có thể +vài fail. Net dương nếu có context-overflow.
-      - --max-model-len=8192
+      # ---- part13: max-model-len 8192 -> 12288 (kiểm nốt 5 fail còn lại của part12) ----
+      # part12 (8192) đã chứng minh: fails KHÔNG phải cold-start structural mà phần lớn là context-overflow
+      # (75 -> 5 khi tăng max-len). Giả thuyết part13: 5 fail còn lại VẪN có thể là overflow hiếm (hội thoại
+      # multi-turn dài bất thường trong trace) vượt 8192. Tăng lên 12288 để kiểm nốt.
+      # Chi phí ~0: model 1.2B FP8 + KV-FP8 rất nhỏ, VRAM 18GB dư dả ở concurrency đỉnh ~5 (part12 đã
+      # chứng minh TTFT KHÔNG xấu đi khi tăng max-len 4608->8192, nên 8192->12288 nhiều khả năng cũng vậy).
+      # Kỳ vọng: fails -> ~0 (nếu overflow) hoặc giữ nguyên ~5 (nếu đó là floor thật: jitter/edge-case).
+      # Thượng hạn upside nhỏ (~1đ) nhưng rẻ và đúng phương pháp 1-biến (R2.1) — đáng thử trước khi khóa sổ.
+      - --max-model-len=12288
       - --gpu-memory-utilization=0.92
       - --tensor-parallel-size=1
       # Multi-turn -> prefix caching hit cao -> giảm TTFT.
       - --enable-prefix-caching
       # KV cache FP8 -> gấp đôi token cache.
       - --kv-cache-dtype=fp8
-      # FP8 weight quant online -> decode/prefill nhanh (+11đ). Accuracy arc_challenge Δ≈0; GPQA CHƯA đo.
+      # FP8 weight quant online -> decode/prefill nhanh. Accuracy arc_challenge Δ≈0; GPQA CHƯA đo (xem SUMMARY.md).
       - --quantization=fp8
-      # KHÔNG --enforce-eager (part11 -> TPOT 10ms). KHÔNG --compilation-config (part9 no-op).
+      # KHÔNG --enforce-eager (part11 -> TPOT 10ms, thất bại kép). KHÔNG --compilation-config (part9 no-op).
       # KHÔNG --async-scheduling (part4-7 fails nhiều hơn sync). DEFAULT compilation = piecewise graph -> TPOT 4ms.
     ports:
       - "8000:8000"
